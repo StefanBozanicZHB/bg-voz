@@ -5,6 +5,8 @@ import zhb.company.bgvoz.data.Direction
 import zhb.company.bgvoz.data.Station
 import zhb.company.bgvoz.data.TimetableData
 import zhb.company.bgvoz.data.Train
+import java.time.DateTimeException
+import java.time.LocalDate
 import kotlin.math.abs
 
 class PdfParseException(message: String) : Exception(message)
@@ -26,7 +28,6 @@ object PdfTimetableParser {
     private val TRAIN_NO = Regex("""^\d{4}$""")
     private val FULL_DATE = Regex("""(\d{1,2})\.(\d{1,2})\.(\d{4})""")
     private val DAY_OR_DATE = Regex("""\d{1,2}\.\d{1,2}\.\d{4}|\d{1,2}\.""")
-    private val VALIDITY = Regex("""\d{1,2}\.\d{1,2}\.\d{4}\.?""")
 
     /** [pages] su redovi teksta po stranama, u vizuelnim koordinatama (vidi [LineBuilder]). */
     fun parse(
@@ -49,11 +50,12 @@ object PdfTimetableParser {
         if (trains.isEmpty()) throw PdfParseException("Tabele su nađene ali nemaju nijedan polazak.")
 
         val allLines = pages.flatten()
+        val validity = validity(allLines)
         return TimetableData(
             route = route,
             trains = trains,
-            validFrom = validity(allLines)?.first,
-            validTo = validity(allLines)?.second,
+            validFrom = validity?.first,
+            validTo = validity?.second,
             holidays = holidays(allLines),
             origin = origin,
             fetchedAt = fetchedAt,
@@ -202,11 +204,21 @@ object PdfTimetableParser {
 
     // -------------------------------------------------------------- napomene
 
-    private fun validity(lines: List<TextLine>): Pair<String, String>? {
+    /** Iz napomene „Важи од 09.09.2026. до 12.12.2026. године". */
+    private fun validity(lines: List<TextLine>): Pair<LocalDate, LocalDate>? {
         val line = lines.firstOrNull { SerbianText.toLatin(it.text).contains("Važi od", ignoreCase = true) }
             ?: return null
-        val dates = VALIDITY.findAll(line.text).map { it.value }.toList()
+        val dates = FULL_DATE.findAll(line.text).mapNotNull { toDate(it) }.toList()
         return if (dates.size >= 2) dates[0] to dates[1] else null
+    }
+
+    private fun toDate(match: MatchResult): LocalDate? {
+        val (day, month, year) = match.destructured
+        return try {
+            LocalDate.of(year.toInt(), month.toInt(), day.toInt())
+        } catch (e: DateTimeException) {
+            null
+        }
     }
 
     /**

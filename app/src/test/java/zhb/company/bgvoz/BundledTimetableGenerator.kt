@@ -26,8 +26,13 @@ object BundledTimetableGenerator {
         println("Upisano: ${out.absolutePath} (${data.trains.size} vozova)")
     }
 
+    private fun localDate(date: java.time.LocalDate) =
+        "LocalDate.of(${date.year}, ${date.monthValue}, ${date.dayOfMonth})"
+
     private fun render(data: TimetableData): String = buildString {
         appendLine("package zhb.company.bgvoz.data")
+        appendLine()
+        appendLine("import java.time.LocalDate")
         appendLine()
         appendLine("/**")
         appendLine(" * Ugrađena kopija reda vožnje BG:VOZ-a za relaciju Batajnica – Ovča.")
@@ -77,8 +82,8 @@ object BundledTimetableGenerator {
         appendLine("                    route = route,")
         appendLine("                )")
         appendLine("            },")
-        appendLine("            validFrom = ${data.validFrom?.let { "\"$it\"" }},")
-        appendLine("            validTo = ${data.validTo?.let { "\"$it\"" }},")
+        appendLine("            validFrom = ${data.validFrom?.let(::localDate)},")
+        appendLine("            validTo = ${data.validTo?.let(::localDate)},")
         appendLine("            holidays = holidays,")
         appendLine("            origin = DataOrigin.BUNDLED,")
         appendLine("            fetchedAt = null,")

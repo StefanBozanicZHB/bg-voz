@@ -58,18 +58,44 @@ data class Train(
 /** Odakle su podaci koje trenutno gledamo. */
 enum class DataOrigin { NETWORK, CACHE, BUNDLED }
 
+/** Da li je red vožnje uopšte na snazi za dan koji gledamo. */
+enum class Validity {
+    /** Datum je unutar perioda važenja iz PDF-a. */
+    VALID,
+
+    /** Red vožnje je istekao – vremena više ne moraju da važe. */
+    EXPIRED,
+
+    /** Red vožnje tek stupa na snagu. */
+    NOT_YET_VALID,
+
+    /** Period važenja nije pročitan iz PDF-a, pa se istek ne može proveriti. */
+    UNKNOWN,
+}
+
 /** Kompletan red vožnje za relaciju Batajnica – Ovča. */
 data class TimetableData(
     val route: List<Station>,
     val trains: List<Train>,
-    val validFrom: String?,
-    val validTo: String?,
+    val validFrom: LocalDate?,
+    val validTo: LocalDate?,
     /** Dani državnog praznika iz napomene u PDF-u: (godina, mesec, dan). */
     val holidays: Set<Triple<Int, Int, Int>>,
     val origin: DataOrigin,
     /** Kada je PDF preuzet/pročitan, u epoch millis. */
     val fetchedAt: Long?,
 ) {
+    /**
+     * PDF nosi period važenja („Важи од … до …"). Ako ga pređemo, vremena su i dalje
+     * ona stara – preuzimanje i parsiranje su uspeli, ali podaci više ne važe.
+     */
+    fun validityOn(date: LocalDate): Validity = when {
+        validFrom == null || validTo == null -> Validity.UNKNOWN
+        date.isAfter(validTo) -> Validity.EXPIRED
+        date.isBefore(validFrom) -> Validity.NOT_YET_VALID
+        else -> Validity.VALID
+    }
+
     fun isWeekendOrHoliday(date: LocalDate): Boolean =
         date.dayOfWeek.value >= 6 || Triple(date.year, date.monthValue, date.dayOfMonth) in holidays
 
@@ -111,6 +137,9 @@ data class StationCall(
     val arrivalAtTerminus: Int get() = train.times[train.terminusIndex]!!
     val rideMinutes: Int get() = arrivalAtTerminus - minuteOfDay
 }
+
+fun formatDate(date: LocalDate): String =
+    "%02d.%02d.%04d.".format(date.dayOfMonth, date.monthValue, date.year)
 
 fun formatTime(minuteOfDay: Int): String =
     "%02d:%02d".format(minuteOfDay / 60 % 24, minuteOfDay % 60)

@@ -7,8 +7,10 @@ import org.junit.Test
 import zhb.company.bgvoz.data.DataOrigin
 import zhb.company.bgvoz.data.Direction
 import zhb.company.bgvoz.data.TimetableData
+import zhb.company.bgvoz.data.Validity
 import zhb.company.bgvoz.data.pdf.PdfTimetableParser
 import java.io.File
+import java.time.LocalDate
 
 /** Parsira pravi PDF Srbija Voza (RV 2025/2026) i poredi sa onim što u njemu zaista piše. */
 class PdfTimetableParserTest {
@@ -96,8 +98,8 @@ class PdfTimetableParserTest {
 
     @Test
     fun `vazenje i drzavni praznici su procitani iz napomene`() {
-        assertEquals("09.09.2026.", parsed.validFrom)
-        assertEquals("12.12.2026.", parsed.validTo)
+        assertEquals(LocalDate.of(2026, 9, 9), parsed.validFrom)
+        assertEquals(LocalDate.of(2026, 12, 12), parsed.validTo)
         assertTrue(Triple(2026, 11, 11) in parsed.holidays)
         assertTrue(Triple(2026, 1, 7) in parsed.holidays)
         assertTrue(Triple(2026, 4, 12) in parsed.holidays)
@@ -130,5 +132,23 @@ class PdfTimetableParserTest {
             .single { it.train.number == "8042" }
         assertTrue(u8042.isArrival)
         assertTrue(u8042.train.isShortTurn)
+    }
+
+    @Test
+    fun `istek reda voznje se prepoznaje po datumu`() {
+        // granice su uključive
+        assertEquals(Validity.VALID, parsed.validityOn(LocalDate.of(2026, 9, 9)))
+        assertEquals(Validity.VALID, parsed.validityOn(LocalDate.of(2026, 12, 12)))
+        assertEquals(Validity.VALID, parsed.validityOn(LocalDate.of(2026, 10, 20)))
+
+        assertEquals(Validity.NOT_YET_VALID, parsed.validityOn(LocalDate.of(2026, 9, 8)))
+        assertEquals(Validity.EXPIRED, parsed.validityOn(LocalDate.of(2026, 12, 13)))
+        assertEquals(Validity.EXPIRED, parsed.validityOn(LocalDate.of(2027, 3, 1)))
+    }
+
+    @Test
+    fun `bez procitanog perioda vazenja istek se ne tvrdi`() {
+        val bezPerioda = parsed.copy(validFrom = null, validTo = null)
+        assertEquals(Validity.UNKNOWN, bezPerioda.validityOn(LocalDate.of(2030, 1, 1)))
     }
 }

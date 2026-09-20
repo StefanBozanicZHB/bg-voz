@@ -57,6 +57,8 @@ import zhb.company.bgvoz.data.Direction
 import zhb.company.bgvoz.data.Station
 import zhb.company.bgvoz.data.StationCall
 import zhb.company.bgvoz.data.TimetableData
+import zhb.company.bgvoz.data.Validity
+import zhb.company.bgvoz.data.formatDate
 import zhb.company.bgvoz.data.formatTime
 import zhb.company.bgvoz.data.minuteOfDay
 import java.time.Instant
@@ -74,6 +76,7 @@ fun DeparturesScreen(
     state: TimetableUiState,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
+    today: LocalDate = LocalDate.now(),
 ) {
     val data = state.data
     var direction by remember { mutableStateOf(Direction.BATAJNICA_OVCA) }
@@ -86,7 +89,6 @@ fun DeparturesScreen(
 
     // sat koji kuca, da odbrojavanje i „sledeći voz" uvek budu tačni
     var now by remember { mutableStateOf(LocalTime.now()) }
-    val today = remember { LocalDate.now() }
     LaunchedEffect(Unit) {
         while (true) {
             delay(10_000)
@@ -114,6 +116,7 @@ fun DeparturesScreen(
     }
 
     Column(modifier.fillMaxSize()) {
+        ValidityBanner(data, today)
         Header(
             data = data,
             direction = direction,
@@ -589,6 +592,54 @@ private fun NoStopNotice(data: TimetableData, station: Station, modifier: Modifi
     }
 }
 
+/**
+ * Red vožnje ima rok trajanja. Ako ga pređemo, preuzimanje i parsiranje i dalje
+ * uspevaju – podaci samo tiho prestanu da važe. Zato upozorenje ide iznad liste,
+ * a ne u traku na dnu.
+ */
+@Composable
+private fun ValidityBanner(data: TimetableData, today: LocalDate) {
+    val validity = data.validityOn(today)
+    if (validity == Validity.VALID || validity == Validity.UNKNOWN) return
+
+    val scheme = MaterialTheme.colorScheme
+    val (title, body) = when (validity) {
+        Validity.EXPIRED -> "Red vožnje je istekao" to
+            ("Važio je do ${data.validTo?.let(::formatDate)}, a danas je " +
+                "${formatDate(today)} Vremena ispod su iz starog reda vožnje i " +
+                "verovatno više nisu tačna – proveri srbvoz.rs.")
+
+        else -> "Red vožnje još ne važi" to
+            ("Stupa na snagu ${data.validFrom?.let(::formatDate)}. Do tada vremena " +
+                "ispod ne moraju da odgovaraju stvarnom stanju.")
+    }
+
+    Surface(color = scheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+            Text(
+                "!",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = scheme.error,
+            )
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = scheme.onErrorContainer,
+                )
+                Text(
+                    body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onErrorContainer,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun SyncBar(state: TimetableUiState, onRefresh: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
@@ -619,9 +670,9 @@ private fun SyncBar(state: TimetableUiState, onRefresh: () -> Unit) {
 private fun syncText(state: TimetableUiState): String {
     val data = state.data
     val validity = if (data.validFrom != null && data.validTo != null) {
-        " · važi ${data.validFrom} – ${data.validTo}"
+        " · važi ${formatDate(data.validFrom)} – ${formatDate(data.validTo)}"
     } else {
-        ""
+        " · period važenja nije pročitan iz PDF-a"
     }
     return when (state.status) {
         SyncStatus.LOADING -> "Preuzimanje reda vožnje sa srbvoz.rs…"

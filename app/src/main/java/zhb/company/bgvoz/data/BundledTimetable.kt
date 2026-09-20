@@ -1,5 +1,7 @@
 package zhb.company.bgvoz.data
 
+import java.time.LocalDate
+
 /**
  * Ugrađena kopija reda vožnje BG:VOZ-a za relaciju Batajnica – Ovča.
  *
@@ -111,8 +113,8 @@ object BundledTimetable {
                     route = route,
                 )
             },
-            validFrom = "09.09.2026.",
-            validTo = "12.12.2026.",
+            validFrom = LocalDate.of(2026, 9, 9),
+            validTo = LocalDate.of(2026, 12, 12),
             holidays = holidays,
             origin = DataOrigin.BUNDLED,
             fetchedAt = null,
