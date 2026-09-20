@@ -25,12 +25,20 @@ object TimetableRepository {
 
     private var initialized = false
 
+    /**
+     * Poslednji uspešno isparsiran red vožnje. Vidžet se osvežava u istom procesu
+     * kao i aplikacija, pa mu ovo često uštedi ponovno parsiranje PDF-a.
+     */
+    @Volatile
+    private var inMemory: TimetableData? = null
+
     /** Preuzima PDF i parsira ga. Baca izuzetak ako mreža ili PDF ne valjaju. */
     suspend fun fetchFresh(context: Context): TimetableData = withContext(Dispatchers.IO) {
         ensureInit(context)
         val temp = File(context.cacheDir, "$CACHE_NAME.tmp")
         download(PDF_URL, temp)
         val data = parse(temp, DataOrigin.NETWORK, System.currentTimeMillis())
+        inMemory = data
         // tek kad je parsiranje prošlo, PDF postaje novi keš
         val cache = File(context.cacheDir, CACHE_NAME)
         temp.copyTo(cache, overwrite = true)
@@ -43,8 +51,17 @@ object TimetableRepository {
         ensureInit(context)
         val cache = File(context.cacheDir, CACHE_NAME)
         if (!cache.exists()) return@withContext null
-        runCatching { parse(cache, DataOrigin.CACHE, cache.lastModified()) }.getOrNull()
+        runCatching { parse(cache, DataOrigin.CACHE, cache.lastModified()) }
+            .getOrNull()
+            ?.also { inMemory = it }
     }
+
+    /**
+     * Podaci za vidžet: bez odlaska na mrežu. Prvo ono što je već u memoriji,
+     * pa poslednji sačuvani PDF, pa ugrađena kopija – vidžet uvek nešto pokaže.
+     */
+    suspend fun forWidget(context: Context): TimetableData =
+        inMemory ?: cached(context) ?: BundledTimetable.data
 
     private fun ensureInit(context: Context) {
         if (!initialized) {

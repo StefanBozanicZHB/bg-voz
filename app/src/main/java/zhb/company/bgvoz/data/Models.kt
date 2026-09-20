@@ -104,6 +104,29 @@ data class TimetableData(
      * Na krajnjoj stanici to su dolasci ([StationCall.isArrival]), inače polasci.
      * Vozovi koji tu ne staju – ili se okrenu pre te stanice – se ne prikazuju.
      */
+    /**
+     * Prvih [limit] vozova koji tek treba da naiđu, računajući od [nowMinutes].
+     * Kada se današnji polasci potroše, nastavlja se sutrašnjim danom – sutra može
+     * biti vikend ili praznik, pa se red vožnje za taj dan ponovo računa.
+     */
+    fun upcoming(
+        stationIndex: Int,
+        direction: Direction,
+        today: LocalDate,
+        nowMinutes: Int,
+        limit: Int,
+    ): List<UpcomingCall> {
+        val danas = callsAt(stationIndex, direction, isWeekendOrHoliday(today))
+            .filter { it.minuteOfDay >= nowMinutes }
+            .map { UpcomingCall(it, 0) }
+        if (danas.size >= limit) return danas.take(limit)
+
+        val sutra = today.plusDays(1)
+        val sutrasnji = callsAt(stationIndex, direction, isWeekendOrHoliday(sutra))
+            .map { UpcomingCall(it, 1) }
+        return (danas + sutrasnji).take(limit)
+    }
+
     fun callsAt(
         stationIndex: Int,
         direction: Direction,
@@ -116,6 +139,11 @@ data class TimetableData(
         .map { StationCall(it, stationIndex, it.times[stationIndex]!!) }
         .sortedBy { it.minuteOfDay }
         .toList()
+}
+
+/** Polazak u budućnosti – [dayOffset] je 0 za danas, 1 za sutra. */
+data class UpcomingCall(val call: StationCall, val dayOffset: Int) {
+    val isTomorrow: Boolean get() = dayOffset > 0
 }
 
 /** Koji dan gledamo – današnji ili „tipski" radni dan / vikend. */

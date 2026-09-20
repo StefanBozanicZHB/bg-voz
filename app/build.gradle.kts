@@ -45,6 +45,8 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
     implementation(libs.pdfbox.android)
     testImplementation(libs.junit)
     testImplementation(libs.pdfbox)

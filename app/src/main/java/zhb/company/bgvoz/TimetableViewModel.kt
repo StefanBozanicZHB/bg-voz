@@ -11,6 +11,7 @@ import zhb.company.bgvoz.data.BundledTimetable
 import zhb.company.bgvoz.data.TimetableData
 import zhb.company.bgvoz.data.TimetableRepository
 import zhb.company.bgvoz.data.pdf.PdfParseException
+import zhb.company.bgvoz.widget.WidgetRefresh
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -48,7 +49,11 @@ class TimetableViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             val context = getApplication<Application>()
             runCatching { TimetableRepository.fetchFresh(context) }
-                .onSuccess { state = TimetableUiState(it, SyncStatus.FRESH) }
+                .onSuccess {
+                    state = TimetableUiState(it, SyncStatus.FRESH)
+                    // vidžeti čitaju isti keš – neka odmah pokažu sveža vremena
+                    runCatching { WidgetRefresh.refreshNow(context) }
+                }
                 .onFailure { failure ->
                     val fallback = runCatching { TimetableRepository.cached(context) }.getOrNull()
                         ?: BundledTimetable.data

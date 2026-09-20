@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">BG Voz</string>
+    <string name="widget_name">Sledeći vozovi</string>
+    <string name="widget_description">Sledeći polasci sa izabrane stanice BG:VOZ-a.</string>
+    <string name="widget_preview_station">Pančevački Most  →  Ovča</string>
+    <string name="widget_preview_first">16:35  za 8 min</string>
+    <string name="widget_preview_second">17:35</string>
 </resources>
