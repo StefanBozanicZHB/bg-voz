@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Jednobojna varijanta za „themed icons" (Android 13+); sistem je sam boji. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- telo sa izrezanim vetrobranom i farovima -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M48,27h12a12,12 0 0 1 12,12v30a5,5 0 0 1 -5,5h-26a5,5 0 0 1 -5,-5v-30a12,12 0 0 1 12,-12zM46,36h16a4,4 0 0 1 4,4v8a4,4 0 0 1 -4,4h-16a4,4 0 0 1 -4,-4v-8a4,4 0 0 1 4,-4zM41.5,63a3.5,3.5 0 1 1 7,0a3.5,3.5 0 1 1 -7,0zM59.5,63a3.5,3.5 0 1 1 7,0a3.5,3.5 0 1 1 -7,0z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,79h32a2.5,2.5 0 0 1 0,5h-32a2.5,2.5 0 0 1 0,-5z" />
+</vector>
